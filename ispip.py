@@ -6,6 +6,8 @@ from concurrent.futures import ProcessPoolExecutor
 import joblib
 import numpy as np
 import scipy.stats
+import matplotlib.pyplot as plt
+
 
 def main(df,feature_cols,annotated_col,predicted_col, proteins, xg = True):
     df = predict(df, feature_cols, "input","model",xg)
@@ -13,7 +15,7 @@ def main(df,feature_cols,annotated_col,predicted_col, proteins, xg = True):
     df_saver(results_df, "results", "output/")
     df_saver(bin_frame, "bin_frame", "output/")
     df_saver(fscore_mcc_by_protein, "fscore_mcc_by_protein","output/")
-    # visualization(roc_curve_data, pr_curve_data, None, df, feature_cols,annotated_col, predicted_col, df, bin_frame, args_container)
+    visualization(roc_curve_data, pr_curve_data, None, df, feature_cols,annotated_col, predicted_col, df, bin_frame)
     return
 
 def df_saver(df, name, output_path_dir):
@@ -275,6 +277,66 @@ def delong_roc_test(ground_truth, predictions_one, predictions_two):
         (predictions_one, predictions_two))[:, order]
     aucs, delongcov = fastDeLong(predictions_sorted_transposed, label_1_count)
     return calc_pvalue(aucs, delongcov), aucs
+
+def visualization(roc_curve_data, pr_curve_data, tree, df, feature_cols, annotated_col, predicted_col, test_frame, bin_frame, args_container):
+    roc_viz(roc_curve_data, args_container.output_path_dir,
+            args_container.model_name)
+    pr_viz(pr_curve_data, args_container.output_path_dir,
+           args_container.model_name, test_frame, annotated_col)
+    return
+def roc_viz(roc_curve_data, output_path_dir, model_name):
+    roc_frames = []
+    plt.figure()
+    lw = 2
+    for data in roc_curve_data:
+        pred, fpr, tpr, roc_auc, thresholds = data
+        new_roc_frame = pd.DataFrame()
+        new_roc_frame[f"{pred}_fpr"] = fpr
+        new_roc_frame[f"{pred}_tpr"] = tpr
+        roc_frames.append(new_roc_frame)
+        plt.plot(fpr, tpr, lw=lw, label=f"{pred} (area = {roc_auc})")
+
+    roc_frame = pd.concat(roc_frames, axis=1)
+    roc_frame.to_csv(f"{output_path_dir}/roc_{model_name}.csv")
+    plt.plot([0, 1], [0, 1], color="gray", lw=lw, linestyle="--", alpha=0.5)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("Receiver operating characteristic Curve")
+    plt.legend(loc="lower right")
+    plt.tight_layout()
+    plt.savefig(f"{output_path_dir}/ROC_{model_name}.png")
+    # plt.show()
+    return
+
+
+def pr_viz(pr_curve_data, output_path_dir, model_name, df, annotated_col):
+    pr_frames = [pd.DataFrame()]
+    plt.figure()
+    lw = 2
+    for data in pr_curve_data:
+        pred, recall, precision, pr_auc, thresholds = data
+        pr_frame = pd.DataFrame()
+        pr_frame[f"{pred}_fpr"] = recall
+        pr_frame[f"{pred}_tpr"] = precision
+        pr_frames.append(pr_frame)
+        plt.plot(recall, precision, lw=lw, label=f"{pred} (area = {pr_auc})")
+
+    pr_frame = pd.concat(pr_frames, axis=1)
+    pr_frame.to_csv(f"{output_path_dir}/pr_{model_name}.csv")
+    no_skill = len(df[df[annotated_col] == 1]) / len(df)
+    plt.plot([0, 1], [no_skill, no_skill], linestyle='--', color='gray')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("Precision-Recall curve")
+    plt.legend(loc="upper right")
+    plt.tight_layout()
+    plt.savefig(f"{output_path_dir}/PR_{model_name}.png")
+    # plt.show()
+    return
 
 def data_preprocesss(df: pd.DataFrame) -> tuple:
     feature_cols: list = df.columns.tolist()[1:-1]
