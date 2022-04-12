@@ -106,7 +106,6 @@ def postprocess(test_frame, predicted_col, annotated_col, autocutoff = 15) -> tu
     
     return result_df, roc_curve_data, pr_curve_data, test_frame, fscore_mcc_by_protein, stats_df
 
-
 def analyses(params) -> tuple:
     pred, cutoff_dict, test_frame, annotated_col = params
     top = test_frame.sort_values(by=[pred], ascending=False).groupby((["protein"])).apply(
@@ -130,10 +129,8 @@ def analyses(params) -> tuple:
 
     return pred, test_frame[f'{pred}_bin'], fscore_mcc_per_protein, results_list, roclist, prlist
 
-
 def fscore_mcc(x, annotated_col, pred) -> tuple:
     return f1_score(x[annotated_col], x[f'{pred}_bin']), matthews_corrcoef(x[annotated_col], x[f'{pred}_bin'])
-
 
 def statistics(x, annotated_col, pred1, pred2) -> tuple:
     y_true = x[annotated_col]
@@ -181,7 +178,6 @@ def compute_midrank(x):
     T2[J] = T + 1
     return T2
 
-
 def fastDeLong(predictions_sorted_transposed, label_1_count):
     """
     The fast version of DeLong's method for computing the covariance of
@@ -226,7 +222,6 @@ def fastDeLong(predictions_sorted_transposed, label_1_count):
     delongcov = sx / m + sy / n
     return aucs, delongcov
 
-
 def calc_pvalue(aucs, sigma):
     """Computes log(10) of p-values.
     Args:
@@ -239,13 +234,11 @@ def calc_pvalue(aucs, sigma):
     z = np.abs(np.diff(aucs)) / np.sqrt(np.dot(np.dot(l, sigma), l.T))
     return np.log10(2) + scipy.stats.norm.logsf(z, loc=0, scale=1) / np.log(10)
 
-
 def compute_ground_truth_statistics(ground_truth):
     assert np.array_equal(np.unique(ground_truth), [0, 1])
     order = (-ground_truth).argsort()
     label_1_count = int(ground_truth.sum())
     return order, label_1_count
-
 
 def delong_roc_variance(ground_truth, predictions):
     """
@@ -260,7 +253,6 @@ def delong_roc_variance(ground_truth, predictions):
     assert len(
         aucs) == 1, "There is a bug in the code, please forward this to the developers"
     return aucs[0], delongcov
-
 
 def delong_roc_test(ground_truth, predictions_one, predictions_two):
     """
@@ -278,12 +270,11 @@ def delong_roc_test(ground_truth, predictions_one, predictions_two):
     aucs, delongcov = fastDeLong(predictions_sorted_transposed, label_1_count)
     return calc_pvalue(aucs, delongcov), aucs
 
-def visualization(roc_curve_data, pr_curve_data, tree, df, feature_cols, annotated_col, predicted_col, test_frame, bin_frame, args_container):
-    roc_viz(roc_curve_data, args_container.output_path_dir,
-            args_container.model_name)
-    pr_viz(pr_curve_data, args_container.output_path_dir,
-           args_container.model_name, test_frame, annotated_col)
+def visualization(roc_curve_data, pr_curve_data, tree, df, feature_cols, annotated_col, predicted_col, test_frame, bin_frame):
+    roc_viz(roc_curve_data, "output", "model")
+    pr_viz(pr_curve_data, "output","model", test_frame, annotated_col)
     return
+
 def roc_viz(roc_curve_data, output_path_dir, model_name):
     roc_frames = []
     plt.figure()
